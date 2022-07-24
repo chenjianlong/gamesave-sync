@@ -5,6 +5,7 @@ Gamesave syncing via S3
 ## Supported games
 
 * The Witcher 3
+* Skyrim
 
 ## Supported OS
 

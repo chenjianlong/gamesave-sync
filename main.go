@@ -27,6 +27,7 @@ type GameInfo struct {
 
 var GameList = []GameInfo{
 	{`The Witcher 3`, `The Witcher 3\gamesaves`,`*.sav`},
+	{`Skyrim`, `My Games\Skyrim\Saves`, `*.ess`},
 }
 
 func main() {
