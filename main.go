@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -120,7 +121,11 @@ func main() {
 		}
 
 		if downloadObjName != "" {
-			checkError(os.Remove(zipPath))
+			err = os.Remove(zipPath)
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				panic(err)
+			}
+
 			checkError(s3Client.FGetObject(context.Background(), bucketName, downloadObjName, zipPath, minio.GetObjectOptions{}))
 			checkError(os.RemoveAll(p))
 			checkError(unzipSource(zipPath, p))
