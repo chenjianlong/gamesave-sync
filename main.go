@@ -106,28 +106,48 @@ func main() {
 		log.Printf("Game: %s, needUpload: %v, downloadObject: %s\n", info.Name, needUpload, downloadObjName)
 		zipPath := filepath.Join(document, info.Name+".zip")
 		if needUpload {
-			err = zipSource(p, zipPath)
-			checkError(err)
-
 			objName := path.Join(info.Name, lastTime.Format(time.RFC3339)+".zip")
-			_, err = s3Client.FPutObject(context.Background(), bucketName, objName, zipPath, minio.PutObjectOptions{
-				ContentType: "application/zip",
-			})
-			checkError(err)
-			log.Printf("Successfully uploaded %s\n", objName)
+			uploadGameSave(s3Client, p, zipPath, bucketName, objName)
 		}
 
 		if downloadObjName != "" {
-			err = os.Remove(zipPath)
-			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				panic(err)
-			}
-
-			checkError(s3Client.FGetObject(context.Background(), bucketName, downloadObjName, zipPath, minio.GetObjectOptions{}))
-			checkError(os.RemoveAll(p))
-			checkError(unzipSource(zipPath, p))
+			downloadGameSave(s3Client, p, zipPath, bucketName, downloadObjName)
 		}
 	}
+}
+
+func uploadGameSave(s3 *minio.Client, p, zipPath, bucketName, objName string) {
+	err := zipSource(p, zipPath)
+	checkError(err)
+	defer func() {
+		err = os.Remove(zipPath)
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	_, err = s3.FPutObject(context.Background(), bucketName, objName, zipPath, minio.PutObjectOptions{
+		ContentType: "application/zip",
+	})
+	checkError(err)
+	log.Printf("Successfully uploaded %s\n", objName)
+}
+
+func downloadGameSave(s3 *minio.Client, p, zipPath, bucketName, objName string) {
+	err := os.Remove(zipPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		panic(err)
+	}
+
+	checkError(s3.FGetObject(context.Background(), bucketName, objName, zipPath, minio.GetObjectOptions{}))
+	defer func() {
+		err = os.Remove(zipPath)
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+	checkError(os.RemoveAll(p))
+	checkError(unzipSource(zipPath, p))
 }
 
 // exists returns whether the given file or directory exists

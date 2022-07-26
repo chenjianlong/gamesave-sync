@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,17 @@ func zipSource(source, destination string) error {
 	}
 
 	zw := zip.NewWriter(writer)
-	defer zw.Close()
+	defer func() {
+		err = zw.Close()
+		if err != nil {
+			log.Println(err)
+		}
+
+		err = writer.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	err = filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
