@@ -6,6 +6,7 @@ Gamesave syncing via S3
 
 * The Witcher 3
 * Skyrim
+* NewPAL
 
 ## Supported OS
 

@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/alexflint/go-arg"
 	"github.com/minio/minio-go/v7"
+	"gopkg.in/ini.v1"
 	"log"
 	"os"
 	"path"
@@ -24,6 +26,7 @@ type GameInfo struct {
 var GameList = []GameInfo{
 	{`The Witcher 3`, `The Witcher 3\gamesaves`, `*.sav`},
 	{`Skyrim`, `My Games\Skyrim\Saves`, `*.ess`},
+	{`NewPAL`, `My Games\NewPAL`, `*.sav`},
 }
 
 func main() {
