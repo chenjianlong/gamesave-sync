@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/alexflint/go-arg"
 	"github.com/minio/minio-go/v7"
+	"golang.org/x/sys/windows/registry"
 	"gopkg.in/ini.v1"
 	"log"
 	"os"
@@ -17,16 +18,88 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+const AppName = "GameSaveSyncing"
+
+type SearchType uint16
+
+const (
+	ST_KnownFolder SearchType = 1
+	ST_Registry    SearchType = 2
+)
+
+type RegistryInfo struct {
+	RootKey registry.Key
+	Key     string
+	Name    string
+}
+type GameSearchInfo struct {
+	Name      string
+	StateGlob string
+	Type      SearchType
+	FolderID  *windows.KNOWNFOLDERID
+	Reg       *RegistryInfo
+	SubDir    string
+}
+
 type GameInfo struct {
 	Name     string
 	Dir      string
 	StatGlob string
 }
 
-var GameList = []GameInfo{
-	{`The Witcher 3`, `The Witcher 3\gamesaves`, `*.sav`},
-	{`Skyrim`, `My Games\Skyrim\Saves`, `*.ess`},
-	{`NewPAL`, `My Games\NewPAL`, `*.sav`},
+func getGameList() []GameInfo {
+	gameSearchInfo := []GameSearchInfo{
+		{`The Witcher 3`, `*.sav`, ST_KnownFolder, windows.FOLDERID_Documents,
+			nil, `The Witcher 3\gamesaves`},
+		{`Skyrim`, `*.ess`, ST_KnownFolder, windows.FOLDERID_Documents,
+			nil, `My Games\Skyrim\Saves`},
+		{`NewPAL`, `*.sav`, ST_KnownFolder, windows.FOLDERID_Documents,
+			nil, `My Games\NewPAL`},
+		{`Wind3`, `*\Event.data`, ST_Registry, nil,
+			&RegistryInfo{registry.CURRENT_USER, `Wind3`, `Path`}, `Save`},
+	}
+
+	var gameList []GameInfo
+	var err error
+	for _, info := range gameSearchInfo {
+		if info.Name == `` || info.SubDir == `` {
+			log.Printf("Invalid search info: %#v\n", info)
+			continue
+		}
+
+		var dir string
+		switch info.Type {
+		case ST_KnownFolder:
+			dir, err = windows.KnownFolderPath(info.FolderID, 0)
+			checkError(err)
+		case ST_Registry:
+			key, err := registry.OpenKey(info.Reg.RootKey, info.Reg.Key, registry.QUERY_VALUE|registry.WOW64_64KEY)
+			if err != nil {
+				continue
+			}
+
+			dir, _, err = key.GetStringValue(info.Reg.Name)
+			if err != nil {
+				continue
+			}
+		default:
+			log.Fatalf("Invalid search type: %d\n", info.Type)
+		}
+
+		if dir == `` {
+			continue
+		}
+
+		dir = filepath.Join(dir, info.SubDir)
+		valid, _ := isDir(dir)
+		if !valid {
+			continue
+		}
+
+		gameList = append(gameList, GameInfo{info.Name, dir, info.StateGlob})
+	}
+
+	return gameList
 }
 
 func main() {
@@ -52,11 +125,10 @@ func main() {
 	})
 	checkError(err)
 
-	document, err := windows.KnownFolderPath(windows.FOLDERID_Documents, 0)
-	checkError(err)
-	log.Println(document)
-	for _, info := range GameList {
-		p := filepath.Join(document, info.Dir)
+	appData := getAppdata()
+	for _, info := range getGameList() {
+		log.Printf("Syncing game: %s\n", info.Name)
+		p := info.Dir
 		valid, _ := isDir(p)
 		if !valid {
 			log.Printf("%s not exist\n", p)
@@ -104,7 +176,7 @@ func main() {
 		}
 
 		log.Printf("Game: %s, needUpload: %v, downloadObject: %s\n", info.Name, needUpload, downloadObjName)
-		zipPath := filepath.Join(document, info.Name+".zip")
+		zipPath := filepath.Join(appData, info.Name+".zip")
 		if needUpload {
 			objName := path.Join(info.Name, lastTime.Format(time.RFC3339)+".zip")
 			uploadGameSave(s3Client, p, zipPath, bucketName, objName)
@@ -114,6 +186,14 @@ func main() {
 			downloadGameSave(s3Client, p, zipPath, bucketName, downloadObjName)
 		}
 	}
+}
+
+func getAppdata() string {
+	appData, err := windows.KnownFolderPath(windows.FOLDERID_RoamingAppData, 0)
+	checkError(err)
+	appData = filepath.Join(appData, AppName)
+	checkError(os.MkdirAll(appData, 0755))
+	return appData
 }
 
 func uploadGameSave(s3 *minio.Client, p, zipPath, bucketName, objName string) {
