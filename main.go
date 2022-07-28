@@ -57,6 +57,8 @@ func getGameList() []GameInfo {
 			nil, `My Games\NewPAL`},
 		{`Wind3`, `*\Event.data`, ST_Registry, nil,
 			&RegistryInfo{registry.CURRENT_USER, `Wind3`, `Path`}, `Save`},
+		{`Wind4`, `*\EventData_Total.DATA`, ST_Registry, nil,
+			&RegistryInfo{registry.CURRENT_USER, `Wind4`, `Path`}, `Save`},
 	}
 
 	var gameList []GameInfo

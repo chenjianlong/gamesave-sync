@@ -8,6 +8,7 @@ Gamesave syncing via S3
 * Skyrim
 * NewPAL
 * Wind3
+* Wind4
 
 ## Supported OS
 
