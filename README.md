@@ -1,6 +1,8 @@
 # gamesave syncing
 
-Gamesave syncing via S3
+Syncing game save between PC via S3
+
+[简体中文文档](README-zh_CN.md)
 
 ## Supported games
 
