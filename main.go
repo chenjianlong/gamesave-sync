@@ -23,8 +23,8 @@ const AppName = "GameSaveSyncing"
 type SearchType uint16
 
 const (
-	ST_KnownFolder SearchType = 1
-	ST_Registry    SearchType = 2
+	STKnownFolder SearchType = 1
+	STRegistry    SearchType = 2
 )
 
 type RegistryInfo struct {
@@ -34,7 +34,6 @@ type RegistryInfo struct {
 }
 type GameSearchInfo struct {
 	Name      string
-	StateGlob string
 	Type      SearchType
 	FolderID  *windows.KNOWNFOLDERID
 	Reg       *RegistryInfo
@@ -44,20 +43,19 @@ type GameSearchInfo struct {
 type GameInfo struct {
 	Name     string
 	Dir      string
-	StatGlob string
 }
 
 func getGameList() []GameInfo {
 	gameSearchInfo := []GameSearchInfo{
-		{`The Witcher 3`, `*.sav`, ST_KnownFolder, windows.FOLDERID_Documents,
+		{`The Witcher 3`, STKnownFolder, windows.FOLDERID_Documents,
 			nil, `The Witcher 3\gamesaves`},
-		{`Skyrim`, `*.ess`, ST_KnownFolder, windows.FOLDERID_Documents,
+		{`Skyrim`, STKnownFolder, windows.FOLDERID_Documents,
 			nil, `My Games\Skyrim\Saves`},
-		{`NewPAL`, `*.sav`, ST_KnownFolder, windows.FOLDERID_Documents,
+		{`NewPAL`, STKnownFolder, windows.FOLDERID_Documents,
 			nil, `My Games\NewPAL`},
-		{`Wind3`, `*\Event.data`, ST_Registry, nil,
+		{`Wind3`, STRegistry, nil,
 			&RegistryInfo{registry.CURRENT_USER, `Wind3`, `Path`}, `Save`},
-		{`Wind4`, `*\EventData_Total.DATA`, ST_Registry, nil,
+		{`Wind4`, STRegistry, nil,
 			&RegistryInfo{registry.CURRENT_USER, `Wind4`, `Path`}, `Save`},
 	}
 
@@ -71,10 +69,10 @@ func getGameList() []GameInfo {
 
 		var dir string
 		switch info.Type {
-		case ST_KnownFolder:
+		case STKnownFolder:
 			dir, err = windows.KnownFolderPath(info.FolderID, 0)
 			checkError(err)
-		case ST_Registry:
+		case STRegistry:
 			key, err := registry.OpenKey(info.Reg.RootKey, info.Reg.Key, registry.QUERY_VALUE|registry.WOW64_64KEY)
 			if err != nil {
 				continue
@@ -98,7 +96,7 @@ func getGameList() []GameInfo {
 			continue
 		}
 
-		gameList = append(gameList, GameInfo{info.Name, dir, info.StateGlob})
+		gameList = append(gameList, GameInfo{info.Name, dir})
 	}
 
 	return gameList
@@ -137,24 +135,13 @@ func main() {
 			continue
 		}
 
-		matches, err := filepath.Glob(filepath.Join(p, info.StatGlob))
-		checkError(err)
-
-		var lastTime time.Time
-		for _, name := range matches {
-			fileInfo, err := os.Lstat(name)
-			if err != nil {
-				log.Printf("Failed lstat, path: %s, err: %v\n", name, err)
-				continue
-			}
-
-			if fileInfo.ModTime().After(lastTime) {
-				lastTime = fileInfo.ModTime()
-			}
+		localGameSaveTime := getLocalGameSaveTime(info.Dir)
+		needUpload := false
+		var downloadTime time.Time
+		if localGameSaveTime != nil {
+			needUpload = true
+			downloadTime = *localGameSaveTime
 		}
-
-		needUpload := len(matches) > 0
-		downloadTime := lastTime
 		downloadObjName := ""
 		objectCh := s3Client.ListObjects(context.Background(), bucketName, minio.ListObjectsOptions{Prefix: info.Name + "/"})
 		for obj := range objectCh {
@@ -169,7 +156,7 @@ func main() {
 				continue
 			}
 
-			if lastTime.Unix() == objTime.Unix() {
+			if localGameSaveTime != nil && localGameSaveTime.Unix() == objTime.Unix() {
 				needUpload = false
 			} else if objTime.After(downloadTime) {
 				downloadObjName = obj.Key
@@ -179,8 +166,8 @@ func main() {
 
 		log.Printf("Game: %s, needUpload: %v, downloadObject: %s\n", info.Name, needUpload, downloadObjName)
 		zipPath := filepath.Join(appData, info.Name+".zip")
-		if needUpload {
-			objName := path.Join(info.Name, lastTime.Format(time.RFC3339)+".zip")
+		if needUpload && localGameSaveTime != nil {
+			objName := path.Join(info.Name, localGameSaveTime.Format(time.RFC3339)+".zip")
 			uploadGameSave(s3Client, p, zipPath, bucketName, objName)
 		}
 
@@ -188,6 +175,30 @@ func main() {
 			downloadGameSave(s3Client, p, zipPath, bucketName, downloadObjName)
 		}
 	}
+}
+
+func getLocalGameSaveTime(dir string) *time.Time {
+	var mtime *time.Time = nil
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.Mode().IsRegular() {
+			if mtime == nil {
+				mtime = new(time.Time)
+			}
+
+			if info.ModTime().After(*mtime) {
+				*mtime = info.ModTime()
+			}
+		}
+
+		return nil
+	})
+
+	checkError(err)
+	return mtime
 }
 
 func getAppdata() string {
