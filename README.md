@@ -9,8 +9,9 @@ Syncing game save between PC via S3
 * The Witcher 3
 * Skyrim
 * NewPAL
-* Wind3
-* Wind4
+* Wind Fantasy 3
+* Wind Fantasy 4
+* Wind Fantasy 5
 
 ## Supported OS
 
