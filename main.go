@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jeandeaual/go-locale"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"golang.org/x/sys/windows"
 )
@@ -114,6 +115,10 @@ func main() {
 
 	arg.MustParse(&args)
 
+	loc, err := locale.GetLocale()
+	checkError(err)
+	initBundle(loc)
+
 	iniFile, err := ini.Load(args.Path)
 	checkError(err)
 	iniSection := iniFile.Section("main")
@@ -131,7 +136,7 @@ func main() {
 
 	appData := getAppdata()
 	for _, info := range getGameList() {
-		log.Printf("Syncing game: %s\n", info.Name)
+		log.Println(getSyncGameMessage(info.Name))
 		p := info.Dir
 		valid, _ := isDir(p)
 		if !valid {
