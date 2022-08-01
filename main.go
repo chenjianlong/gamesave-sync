@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/jeandeaual/go-locale"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"golang.org/x/sys/windows"
 )
 
@@ -129,11 +128,7 @@ func main() {
 	accessKeyID := iniSection.Key("accessKeyID").String()
 	secretAccessKey := iniSection.Key("secretAccessKey").String()
 
-	// Initialize minio client object.
-	s3Client, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: true,
-	})
+	transfer, err := NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey)
 	checkError(err)
 
 	appData := getAppdata()
@@ -154,7 +149,7 @@ func main() {
 			downloadTime = *localGameSaveTime
 		}
 		downloadObjName := ""
-		objectCh := s3Client.ListObjects(context.Background(), bucketName, minio.ListObjectsOptions{Prefix: info.Name + "/"})
+		objectCh := transfer.Client.ListObjects(context.Background(), bucketName, minio.ListObjectsOptions{Prefix: info.Name + "/"})
 		for obj := range objectCh {
 			checkError(obj.Err)
 			if !strings.HasSuffix(obj.Key, ".zip") {
@@ -179,11 +174,11 @@ func main() {
 		zipPath := filepath.Join(appData, info.Name+".zip")
 		if needUpload && localGameSaveTime != nil {
 			objName := path.Join(info.Name, localGameSaveTime.Format(time.RFC3339)+".zip")
-			uploadGameSave(s3Client, p, zipPath, bucketName, objName)
+			uploadGameSave(transfer, p, zipPath, objName)
 		}
 
 		if downloadObjName != "" {
-			downloadGameSave(s3Client, p, zipPath, bucketName, downloadObjName)
+			downloadGameSave(transfer, p, zipPath, downloadObjName)
 		}
 	}
 }
@@ -220,7 +215,7 @@ func getAppdata() string {
 	return appData
 }
 
-func uploadGameSave(s3 *minio.Client, p, zipPath, bucketName, objName string) {
+func uploadGameSave(uploader Uploader, p, zipPath, objName string) {
 	err := zipSource(p, zipPath)
 	checkError(err)
 	defer func() {
@@ -230,20 +225,17 @@ func uploadGameSave(s3 *minio.Client, p, zipPath, bucketName, objName string) {
 		}
 	}()
 
-	_, err = s3.FPutObject(context.Background(), bucketName, objName, zipPath, minio.PutObjectOptions{
-		ContentType: "application/zip",
-	})
-	checkError(err)
+	checkError(uploader.upload(zipPath, objName))
 	log.Printf("Successfully uploaded %s\n", objName)
 }
 
-func downloadGameSave(s3 *minio.Client, p, zipPath, bucketName, objName string) {
+func downloadGameSave(downloader Downloader, p, zipPath, objName string) {
 	err := os.Remove(zipPath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		panic(err)
 	}
 
-	checkError(s3.FGetObject(context.Background(), bucketName, objName, zipPath, minio.GetObjectOptions{}))
+	checkError(downloader.download(objName, zipPath))
 	defer func() {
 		err = os.Remove(zipPath)
 		if err != nil {

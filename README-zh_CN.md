@@ -22,3 +22,8 @@
 * 在 config.ini 中填入你的 S3 存储配置
 * 使用 go build 编译 gamesavesyncing.exe
 * 运行 gamesavesyncing.exe
+
+## 待完成
+
+* 支持通过 FTP 服务端同步游戏存档
+* 支持通过监控游戏存档所在的目录和游戏进程，当游戏存档发生修改并且探测到游戏进程退出后同步游戏存档

@@ -24,3 +24,9 @@ Syncing game save between PC via S3
 * Fill config.ini
 * Use go build generate gamesavesyncing.exe
 * Run gamesavesyncing.exe
+
+
+## TODO
+
+* Support sync via FTP server
+* Support monitor game save directory and game process，sync game save while change
