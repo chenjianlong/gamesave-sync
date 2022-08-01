@@ -13,6 +13,7 @@ Syncing game save between PC via S3
 * Wind Fantasy 4
 * Wind Fantasy 5
 * Wind Fantasy 6
+* Wind Fantasy XX
 
 ## Supported OS
 

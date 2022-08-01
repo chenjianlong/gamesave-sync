@@ -7,5 +7,6 @@
   "Wind4": "Wind Fantasy 4",
   "Wind5": "Wind Fantasy 5",
   "Wind6": "Wind Fantasy 6",
+  "WindXX": "Wind Fantasy XX",
   "SyncGame": "Syncing {{ .Name }} game save"
 }

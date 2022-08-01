@@ -62,6 +62,8 @@ func getGameList() []GameInfo {
 			&RegistryInfo{registry.CURRENT_USER, `Wind5`, `Path`}, `Save`},
 		{`Wind6`, STRegistry, nil,
 			&RegistryInfo{registry.CURRENT_USER, `Wind6`, `Path`}, `Save`},
+		{`WindXX`, STRegistry, nil,
+			&RegistryInfo{registry.CURRENT_USER, `WindXX`, `Path`}, `Save`},
 	}
 
 	var gameList []GameInfo
