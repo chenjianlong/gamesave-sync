@@ -12,7 +12,7 @@ type S3Transfer struct {
 	bucketName string
 }
 
-func NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey string) (*S3Transfer, error) {
+func NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey string) (Transfer, error) {
 	s3Client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: true,

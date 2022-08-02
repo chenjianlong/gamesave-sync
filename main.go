@@ -140,32 +140,7 @@ func main() {
 		}
 
 		localGameSaveTime := getLocalGameSaveTime(info.Dir)
-		needUpload := false
-		var downloadTime time.Time
-		if localGameSaveTime != nil {
-			needUpload = true
-			downloadTime = *localGameSaveTime
-		}
-		downloadObjName := ""
-		for file := range transfer.listFile(info.Name) {
-			if !strings.HasSuffix(file, ".zip") {
-				continue
-			}
-
-			objTime, err := time.Parse(time.RFC3339, strings.TrimPrefix(strings.TrimSuffix(file, ".zip"), info.Name+"/"))
-			if err != nil {
-				log.Printf("Failed to parse time %s\n", file)
-				continue
-			}
-
-			if localGameSaveTime != nil && localGameSaveTime.Unix() == objTime.Unix() {
-				needUpload = false
-			} else if objTime.After(downloadTime) {
-				downloadObjName = file
-				downloadTime = objTime
-			}
-		}
-
+		downloadObjName, needUpload := getDownloadName(transfer, localGameSaveTime, info.Name+"/")
 		log.Printf("Game: %s, needUpload: %v, downloadObject: %s\n", info.Name, needUpload, downloadObjName)
 		zipPath := filepath.Join(appData, info.Name+".zip")
 		if needUpload && localGameSaveTime != nil {
@@ -177,6 +152,36 @@ func main() {
 			downloadGameSave(transfer, p, zipPath, downloadObjName)
 		}
 	}
+}
+
+func getDownloadName(transfer Transfer, localTime *time.Time, dir string) (string, bool) {
+	needUpload := false
+	var downloadTime time.Time
+	if localTime != nil {
+		needUpload = true
+		downloadTime = *localTime
+	}
+	downloadObjName := ""
+	for file := range transfer.listFile(dir) {
+		if !strings.HasSuffix(file, ".zip") {
+			continue
+		}
+
+		objTime, err := time.Parse(time.RFC3339, strings.TrimPrefix(strings.TrimSuffix(file, ".zip"), dir))
+		if err != nil {
+			log.Printf("Failed to parse time %s\n", file)
+			continue
+		}
+
+		if localTime != nil && localTime.Unix() == objTime.Unix() {
+			needUpload = false
+		} else if objTime.After(downloadTime) {
+			downloadObjName = file
+			downloadTime = objTime
+		}
+	}
+
+	return downloadObjName, needUpload
 }
 
 func getLocalGameSaveTime(dir string) *time.Time {
