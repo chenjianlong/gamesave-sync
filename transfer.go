@@ -11,4 +11,5 @@ type Downloader interface {
 type Transfer interface {
 	Uploader
 	Downloader
+	listFile(dir string) chan string
 }

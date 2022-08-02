@@ -4,10 +4,11 @@ import (
 	"context"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"strings"
 )
 
 type S3Transfer struct {
-	Client *minio.Client
+	client     *minio.Client
 	bucketName string
 }
 
@@ -22,13 +23,13 @@ func NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey string) (*
 	}
 
 	transfer := new(S3Transfer)
-	transfer.Client = s3Client
+	transfer.client = s3Client
 	transfer.bucketName = bucketName
 	return transfer, nil
 }
 
 func (t *S3Transfer) upload(localFile, remoteFile string) error {
-	_, err := t.Client.FPutObject(context.Background(), t.bucketName, remoteFile, localFile, minio.PutObjectOptions{
+	_, err := t.client.FPutObject(context.Background(), t.bucketName, remoteFile, localFile, minio.PutObjectOptions{
 		ContentType: "application/zip",
 	})
 
@@ -36,5 +37,22 @@ func (t *S3Transfer) upload(localFile, remoteFile string) error {
 }
 
 func (t *S3Transfer) download(remoteFile, localFile string) error {
-	return t.Client.FGetObject(context.Background(), t.bucketName, remoteFile, localFile, minio.GetObjectOptions{})
+	return t.client.FGetObject(context.Background(), t.bucketName, remoteFile, localFile, minio.GetObjectOptions{})
+}
+
+func (t *S3Transfer) listFile(dir string) chan string {
+	if !strings.HasSuffix(dir, "/") {
+		dir = dir + "/"
+	}
+
+	objectCh := t.client.ListObjects(context.Background(), t.bucketName, minio.ListObjectsOptions{Prefix: dir})
+	resultCh := make(chan string)
+	go func() {
+		for obj := range objectCh {
+			checkError(obj.Err)
+			resultCh <- obj.Key
+		}
+		close(resultCh)
+	}()
+	return resultCh
 }

@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"github.com/alexflint/go-arg"
-	"github.com/minio/minio-go/v7"
 	"golang.org/x/sys/windows/registry"
 	"gopkg.in/ini.v1"
 	"log"
@@ -149,23 +147,21 @@ func main() {
 			downloadTime = *localGameSaveTime
 		}
 		downloadObjName := ""
-		objectCh := transfer.Client.ListObjects(context.Background(), bucketName, minio.ListObjectsOptions{Prefix: info.Name + "/"})
-		for obj := range objectCh {
-			checkError(obj.Err)
-			if !strings.HasSuffix(obj.Key, ".zip") {
+		for file := range transfer.listFile(info.Name) {
+			if !strings.HasSuffix(file, ".zip") {
 				continue
 			}
 
-			objTime, err := time.Parse(time.RFC3339, strings.TrimPrefix(strings.TrimSuffix(obj.Key, ".zip"), info.Name+"/"))
+			objTime, err := time.Parse(time.RFC3339, strings.TrimPrefix(strings.TrimSuffix(file, ".zip"), info.Name+"/"))
 			if err != nil {
-				log.Printf("Failed to parse time %s\n", obj.Key)
+				log.Printf("Failed to parse time %s\n", file)
 				continue
 			}
 
 			if localGameSaveTime != nil && localGameSaveTime.Unix() == objTime.Unix() {
 				needUpload = false
 			} else if objTime.After(downloadTime) {
-				downloadObjName = obj.Key
+				downloadObjName = file
 				downloadTime = objTime
 			}
 		}
