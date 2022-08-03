@@ -47,6 +47,8 @@ func getGameList() []GameInfo {
 	gameSearchInfo := []GameSearchInfo{
 		{`The Witcher 3`, STKnownFolder, windows.FOLDERID_Documents,
 			nil, `The Witcher 3\gamesaves`},
+		{`Shin Sangokumusou 7 TC`, STKnownFolder, windows.FOLDERID_Documents,
+			nil, `TecmoKoei\Shin Sangokumusou 7 TC\Savedata`},
 		{`Skyrim`, STKnownFolder, windows.FOLDERID_Documents,
 			nil, `My Games\Skyrim\Saves`},
 		{`NewPAL`, STKnownFolder, windows.FOLDERID_Documents,

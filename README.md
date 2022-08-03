@@ -7,6 +7,7 @@ Syncing game save between PC via S3
 ## Supported games
 
 * The Witcher 3
+* Shin Sangokumusou 7 TC
 * Skyrim
 * NewPAL
 * Wind Fantasy 3
