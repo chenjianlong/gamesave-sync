@@ -18,55 +18,30 @@ import (
 
 const AppName = "GameSaveSyncing"
 
-type SearchType uint16
-
-const (
-	STKnownFolder SearchType = 1
-	STRegistry    SearchType = 2
-)
-
-type RegistryInfo struct {
-	RootKey registry.Key
-	Key     string
-	Name    string
-}
-type GameSearchInfo struct {
-	Name      string
-	Type      SearchType
-	FolderID  *windows.KNOWNFOLDERID
-	Reg       *RegistryInfo
-	SubDir    string
-}
-
 type GameInfo struct {
-	Name     string
-	Dir      string
+	Name string
+	Dir  string
 }
 
 func getGameList() []GameInfo {
-	gameSearchInfo := []GameSearchInfo{
-		{`The Witcher 3`, STKnownFolder, windows.FOLDERID_Documents,
-			nil, `The Witcher 3\gamesaves`},
-		{`Shin Sangokumusou 7 TC`, STKnownFolder, windows.FOLDERID_Documents,
-			nil, `TecmoKoei\Shin Sangokumusou 7 TC\Savedata`},
-		{`Skyrim`, STKnownFolder, windows.FOLDERID_Documents,
-			nil, `My Games\Skyrim\Saves`},
-		{`NewPAL`, STKnownFolder, windows.FOLDERID_Documents,
-			nil, `My Games\NewPAL`},
-		{`Wind3`, STRegistry, nil,
-			&RegistryInfo{registry.CURRENT_USER, `Wind3`, `Path`}, `Save`},
-		{`Wind4`, STRegistry, nil,
-			&RegistryInfo{registry.CURRENT_USER, `Wind4`, `Path`}, `Save`},
-		{`Wind5`, STRegistry, nil,
-			&RegistryInfo{registry.CURRENT_USER, `Wind5`, `Path`}, `Save`},
-		{`Wind6`, STRegistry, nil,
-			&RegistryInfo{registry.CURRENT_USER, `Wind6`, `Path`}, `Save`},
-		{`WindXX`, STRegistry, nil,
-			&RegistryInfo{registry.CURRENT_USER, `WindXX`, `Path`}, `Save`},
-	}
+	var gameSearchInfo []*GameSearchInfo
+	err := filepath.Walk("conf.d/", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 
+		if info.Mode().IsRegular() {
+			info := LoadGameSearchInfo(path)
+			if info != nil {
+				gameSearchInfo = append(gameSearchInfo, info)
+			}
+		}
+
+		return nil
+	})
+
+	checkError(err)
 	var gameList []GameInfo
-	var err error
 	for _, info := range gameSearchInfo {
 		if info.Name == `` || info.SubDir == `` {
 			log.Printf("Invalid search info: %#v\n", info)

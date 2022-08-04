@@ -1,0 +1,9 @@
+{
+  "name": "Wind3",
+  "searchType": "registry",
+  "registry": {
+    "path": "HKEY_CURRENT_USER\\Wind3",
+    "name": "Path"
+  },
+  "subdir": "Save"
+}
