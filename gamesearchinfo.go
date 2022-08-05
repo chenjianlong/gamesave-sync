@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -32,6 +33,7 @@ type GameSearchInfo struct {
 	Type     SearchType `json:"searchType"`
 	FolderID *windows.KNOWNFOLDERID
 	Reg      *RegistryInfo `json:"registry"`
+	Dir string `json:"dir"`
 	SubDir   string        `json:"subdir"`
 }
 
@@ -432,4 +434,71 @@ func LoadGameSearchInfo(path string) *GameSearchInfo {
 	}
 
 	return searchInfo
+}
+
+type GameInfo struct {
+	Name string
+	Dir  string
+}
+
+func LoadGameList(confDir string) []GameInfo {
+	var gameSearchInfo []*GameSearchInfo
+	err := filepath.Walk(confDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.Mode().IsRegular() {
+			info := LoadGameSearchInfo(path)
+			if info != nil {
+				gameSearchInfo = append(gameSearchInfo, info)
+			}
+		}
+
+		return nil
+	})
+
+	checkError(err)
+	var gameList []GameInfo
+	for _, info := range gameSearchInfo {
+		if info.Name == `` || info.SubDir == `` {
+			log.Printf("Invalid search info: %#v\n", info)
+			continue
+		}
+
+		var dir string
+		switch info.Type {
+		case STKnownFolder:
+			dir, err = windows.KnownFolderPath(info.FolderID, 0)
+			checkError(err)
+		case STRegistry:
+			key, err := registry.OpenKey(info.Reg.RootKey, info.Reg.Key, registry.QUERY_VALUE|registry.WOW64_64KEY)
+			if err != nil {
+				continue
+			}
+
+			dir, _, err = key.GetStringValue(info.Reg.Name)
+			if err != nil {
+				continue
+			}
+		case STFolder:
+			dir = info.Dir
+		default:
+			log.Fatalf("Invalid search type: %d\n", info.Type)
+		}
+
+		if dir == `` {
+			continue
+		}
+
+		dir = filepath.Join(dir, info.SubDir)
+		valid, _ := isDir(dir)
+		if !valid {
+			continue
+		}
+
+		gameList = append(gameList, GameInfo{info.Name, dir})
+	}
+
+	return gameList
 }

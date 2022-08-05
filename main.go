@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"github.com/alexflint/go-arg"
-	"golang.org/x/sys/windows/registry"
 	"gopkg.in/ini.v1"
 	"log"
 	"os"
@@ -17,71 +16,6 @@ import (
 )
 
 const AppName = "GameSaveSyncing"
-
-type GameInfo struct {
-	Name string
-	Dir  string
-}
-
-func getGameList() []GameInfo {
-	var gameSearchInfo []*GameSearchInfo
-	err := filepath.Walk("conf.d/", func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.Mode().IsRegular() {
-			info := LoadGameSearchInfo(path)
-			if info != nil {
-				gameSearchInfo = append(gameSearchInfo, info)
-			}
-		}
-
-		return nil
-	})
-
-	checkError(err)
-	var gameList []GameInfo
-	for _, info := range gameSearchInfo {
-		if info.Name == `` || info.SubDir == `` {
-			log.Printf("Invalid search info: %#v\n", info)
-			continue
-		}
-
-		var dir string
-		switch info.Type {
-		case STKnownFolder:
-			dir, err = windows.KnownFolderPath(info.FolderID, 0)
-			checkError(err)
-		case STRegistry:
-			key, err := registry.OpenKey(info.Reg.RootKey, info.Reg.Key, registry.QUERY_VALUE|registry.WOW64_64KEY)
-			if err != nil {
-				continue
-			}
-
-			dir, _, err = key.GetStringValue(info.Reg.Name)
-			if err != nil {
-				continue
-			}
-		default:
-			log.Fatalf("Invalid search type: %d\n", info.Type)
-		}
-
-		if dir == `` {
-			continue
-		}
-
-		dir = filepath.Join(dir, info.SubDir)
-		valid, _ := isDir(dir)
-		if !valid {
-			continue
-		}
-
-		gameList = append(gameList, GameInfo{info.Name, dir})
-	}
-
-	return gameList
-}
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -107,7 +41,7 @@ func main() {
 	checkError(err)
 
 	appData := getAppdata()
-	for _, info := range getGameList() {
+	for _, info := range LoadGameList("conf.d/") {
 		log.Println(getSyncGameMessage(info.Name))
 		p := info.Dir
 		valid, _ := isDir(p)
