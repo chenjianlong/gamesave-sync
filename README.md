@@ -10,6 +10,7 @@ Syncing game save between PC via S3
 * Shin Sangokumusou 7 TC
 * Skyrim
 * NewPAL
+* Wind Fantasy 2 aLive
 * Wind Fantasy 3
 * Wind Fantasy 4
 * Wind Fantasy 5
