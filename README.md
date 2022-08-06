@@ -9,7 +9,8 @@ Syncing game save between PC via S3
 * The Witcher 3
 * Shin Sangokumusou 7 TC
 * Skyrim
-* NewPAL
+* Chinese Paladin: Sword and Fairy
+* Chinese Paladin: Sword and Fairy 2
 * Wind Fantasy 2 aLive
 * Wind Fantasy 3
 * Wind Fantasy 4
