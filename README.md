@@ -6,11 +6,12 @@ Syncing game save between PC via S3
 
 ## Supported games
 
+* Devil May Cry 5
 * The Witcher 3
 * Shin Sangokumusou 7 TC
 * Skyrim
-* Chinese Paladin: Sword and Fairy
-* Chinese Paladin: Sword and Fairy 2
+* New Legend of Sword and Fairy
+* The Legend of Sword and Fairy 2
 * Wind Fantasy 2 aLive
 * Wind Fantasy 3
 * Wind Fantasy 4
