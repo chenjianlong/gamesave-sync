@@ -1,4 +1,4 @@
-package main
+package transfer
 
 import (
 	"github.com/jlaffaye/ftp"
@@ -30,7 +30,7 @@ func NewFTPTransfer(addr, user, password, subDir string) (Transfer, error) {
 	return transfer, nil
 }
 
-func (t *FTPTransfer) upload(localFile, remoteFile string) error {
+func (t *FTPTransfer) Upload(localFile, remoteFile string) error {
 	fs, err := os.Open(localFile)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (t *FTPTransfer) upload(localFile, remoteFile string) error {
 	return err
 }
 
-func (t *FTPTransfer) download(remoteFile, localFile string) error {
+func (t *FTPTransfer) Download(remoteFile, localFile string) error {
 	fs, err := os.Create(localFile)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (t *FTPTransfer) download(remoteFile, localFile string) error {
 	return err
 }
 
-func (t *FTPTransfer) listFile(dir string) chan string {
+func (t *FTPTransfer) ListFile(dir string) chan string {
 	resultCh := make(chan string)
 	go func() {
 		dir = path.Join(t.subDir, dir)

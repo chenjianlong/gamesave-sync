@@ -1,10 +1,11 @@
-package main
+package transfer
 
 import (
 	"context"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"strings"
+	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
 )
 
 type S3Transfer struct {
@@ -28,7 +29,7 @@ func NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey string) (T
 	return transfer, nil
 }
 
-func (t *S3Transfer) upload(localFile, remoteFile string) error {
+func (t *S3Transfer) Upload(localFile, remoteFile string) error {
 	_, err := t.client.FPutObject(context.Background(), t.bucketName, remoteFile, localFile, minio.PutObjectOptions{
 		ContentType: "application/zip",
 	})
@@ -36,11 +37,11 @@ func (t *S3Transfer) upload(localFile, remoteFile string) error {
 	return err
 }
 
-func (t *S3Transfer) download(remoteFile, localFile string) error {
+func (t *S3Transfer) Download(remoteFile, localFile string) error {
 	return t.client.FGetObject(context.Background(), t.bucketName, remoteFile, localFile, minio.GetObjectOptions{})
 }
 
-func (t *S3Transfer) listFile(dir string) chan string {
+func (t *S3Transfer) ListFile(dir string) chan string {
 	if !strings.HasSuffix(dir, "/") {
 		dir = dir + "/"
 	}
@@ -49,7 +50,7 @@ func (t *S3Transfer) listFile(dir string) chan string {
 	resultCh := make(chan string)
 	go func() {
 		for obj := range objectCh {
-			checkError(obj.Err)
+			CheckError(obj.Err)
 			resultCh <- obj.Key
 		}
 		close(resultCh)

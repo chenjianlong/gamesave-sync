@@ -1,4 +1,4 @@
-package main
+package ziputils
 
 import (
 	"archive/zip"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func zipSource(source, destination string) error {
+func ZipSource(source, destination string) error {
 	writer, err := os.Create(destination)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func addFileToZip(zipWriter *zip.Writer, filename string, dirname string) error 
 	return err
 }
 
-func unzipSource(source, destination string) error {
+func UnzipSource(source, destination string) error {
 	// 1. Open the zip file
 	reader, err := zip.OpenReader(source)
 	if err != nil {

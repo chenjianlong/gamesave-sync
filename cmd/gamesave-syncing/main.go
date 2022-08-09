@@ -11,6 +11,10 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
+	. "github.com/chenjianlong/gamesave-syncing/pkg/i18n"
+	. "github.com/chenjianlong/gamesave-syncing/pkg/transfer"
+	. "github.com/chenjianlong/gamesave-syncing/pkg/ziputils"
 	"github.com/jeandeaual/go-locale"
 	"golang.org/x/sys/windows"
 )
@@ -26,11 +30,11 @@ func main() {
 	arg.MustParse(&args)
 
 	loc, err := locale.GetLocale()
-	checkError(err)
-	initBundle(loc)
+	CheckError(err)
+	InitBundle(loc)
 
 	iniFile, err := ini.Load(args.Path)
-	checkError(err)
+	CheckError(err)
 	iniSection := iniFile.Section("main")
 	endpoint := iniSection.Key("endpoint").String()
 	bucketName := iniSection.Key("bucketName").String()
@@ -38,13 +42,13 @@ func main() {
 	secretAccessKey := iniSection.Key("secretAccessKey").String()
 
 	transfer, err := NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey)
-	checkError(err)
+	CheckError(err)
 
 	appData := getAppdata()
 	for _, info := range LoadGameList("conf.d/") {
-		log.Println(getSyncGameMessage(info.Name))
+		log.Println(GetSyncGameMessage(info.Name))
 		p := info.Dir
-		valid, _ := isDir(p)
+		valid, _ := IsDir(p)
 		if !valid {
 			log.Printf("%s not exist\n", p)
 			continue
@@ -73,7 +77,7 @@ func getDownloadName(transfer Transfer, localTime *time.Time, dir string) (strin
 		downloadTime = *localTime
 	}
 	downloadObjName := ""
-	for file := range transfer.listFile(dir) {
+	for file := range transfer.ListFile(dir) {
 		if !strings.HasSuffix(file, ".zip") {
 			continue
 		}
@@ -115,21 +119,21 @@ func getLocalGameSaveTime(dir string) *time.Time {
 		return nil
 	})
 
-	checkError(err)
+	CheckError(err)
 	return mtime
 }
 
 func getAppdata() string {
 	appData, err := windows.KnownFolderPath(windows.FOLDERID_RoamingAppData, 0)
-	checkError(err)
+	CheckError(err)
 	appData = filepath.Join(appData, AppName)
-	checkError(os.MkdirAll(appData, 0755))
+	CheckError(os.MkdirAll(appData, 0755))
 	return appData
 }
 
 func uploadGameSave(uploader Uploader, p, zipPath, objName string) {
-	err := zipSource(p, zipPath)
-	checkError(err)
+	err := ZipSource(p, zipPath)
+	CheckError(err)
 	defer func() {
 		err = os.Remove(zipPath)
 		if err != nil {
@@ -137,7 +141,7 @@ func uploadGameSave(uploader Uploader, p, zipPath, objName string) {
 		}
 	}()
 
-	checkError(uploader.upload(zipPath, objName))
+	CheckError(uploader.Upload(zipPath, objName))
 	log.Printf("Successfully uploaded %s\n", objName)
 }
 
@@ -147,31 +151,13 @@ func downloadGameSave(downloader Downloader, p, zipPath, objName string) {
 		panic(err)
 	}
 
-	checkError(downloader.download(objName, zipPath))
+	CheckError(downloader.Download(objName, zipPath))
 	defer func() {
 		err = os.Remove(zipPath)
 		if err != nil {
 			log.Println(err)
 		}
 	}()
-	checkError(os.RemoveAll(p))
-	checkError(unzipSource(zipPath, p))
-}
-
-// exists returns whether the given file or directory exists
-func isDir(path string) (bool, error) {
-	st, err := os.Stat(path)
-	if err == nil {
-		return st.IsDir(), nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
-func checkError(err error) {
-	if err != nil {
-		panic(err)
-	}
+	CheckError(os.RemoveAll(p))
+	CheckError(UnzipSource(zipPath, p))
 }

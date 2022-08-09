@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 	"io/ioutil"
@@ -33,7 +34,7 @@ type GameSearchInfo struct {
 	Type     SearchType `json:"searchType"`
 	FolderID *windows.KNOWNFOLDERID
 	Reg      *RegistryInfo `json:"registry"`
-	Dir string `json:"dir"`
+	Dir      string        `json:"dir"`
 	SubDir   string        `json:"subdir"`
 }
 
@@ -458,7 +459,7 @@ func LoadGameList(confDir string) []GameInfo {
 		return nil
 	})
 
-	checkError(err)
+	CheckError(err)
 	var gameList []GameInfo
 	for _, info := range gameSearchInfo {
 		if info.Name == `` || info.SubDir == `` {
@@ -470,7 +471,7 @@ func LoadGameList(confDir string) []GameInfo {
 		switch info.Type {
 		case STKnownFolder:
 			dir, err = windows.KnownFolderPath(info.FolderID, 0)
-			checkError(err)
+			CheckError(err)
 		case STRegistry:
 			key, err := registry.OpenKey(info.Reg.RootKey, info.Reg.Key, registry.QUERY_VALUE|registry.WOW64_64KEY)
 			if err != nil {
@@ -492,7 +493,7 @@ func LoadGameList(confDir string) []GameInfo {
 		}
 
 		dir = filepath.Join(dir, info.SubDir)
-		valid, _ := isDir(dir)
+		valid, _ := IsDir(dir)
 		if !valid {
 			continue
 		}
