@@ -26,7 +26,11 @@ Syncing game save between PC via S3
 ## How to use
 
 * Fill config.ini
-* Use go build generate gamesavesyncing.exe
+* Generate gamesavesyncing.exe
+```
+$ cd cmd\gamesave-syncing
+$ go build
+```
 * Run gamesavesyncing.exe
 
 

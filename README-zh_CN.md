@@ -25,6 +25,10 @@
 
 * 在 config.ini 中填入你的 S3 存储配置
 * 使用 go build 编译 gamesavesyncing.exe
+```
+$ cd cmd\gamesave-syncing
+$ go build
+```
 * 运行 gamesavesyncing.exe
 
 ## 待完成
