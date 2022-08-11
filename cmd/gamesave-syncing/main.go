@@ -59,7 +59,7 @@ func main() {
 		log.Printf("Game: %s, needUpload: %v, downloadObject: %s\n", info.Name, needUpload, downloadObjName)
 		zipPath := filepath.Join(appData, info.Name+".zip")
 		if needUpload && localGameSaveTime != nil {
-			objName := path.Join(info.Name, localGameSaveTime.Format(time.RFC3339)+".zip")
+			objName := path.Join(info.Name, localGameSaveTime.UTC().Format(TimeFormat)+".zip")
 			uploadGameSave(transfer, p, zipPath, objName)
 		}
 
@@ -82,7 +82,7 @@ func getDownloadName(transfer Transfer, localTime *time.Time, dir string) (strin
 			continue
 		}
 
-		objTime, err := time.Parse(time.RFC3339, strings.TrimPrefix(strings.TrimSuffix(file, ".zip"), dir))
+		objTime, err := time.Parse(TimeFormat, strings.TrimPrefix(strings.TrimSuffix(file, ".zip"), dir))
 		if err != nil {
 			log.Printf("Failed to parse time %s\n", file)
 			continue
