@@ -2,10 +2,9 @@ package transfer
 
 import (
 	"context"
+	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"strings"
-	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
 )
 
 type S3Transfer struct {
@@ -42,11 +41,7 @@ func (t *S3Transfer) Download(remoteFile, localFile string) error {
 }
 
 func (t *S3Transfer) ListFile(dir string) chan string {
-	if !strings.HasSuffix(dir, "/") {
-		dir = dir + "/"
-	}
-
-	objectCh := t.client.ListObjects(context.Background(), t.bucketName, minio.ListObjectsOptions{Prefix: dir})
+	objectCh := t.client.ListObjects(context.Background(), t.bucketName, minio.ListObjectsOptions{Prefix: dir, Recursive: true})
 	resultCh := make(chan string)
 	go func() {
 		for obj := range objectCh {
@@ -56,4 +51,22 @@ func (t *S3Transfer) ListFile(dir string) chan string {
 		close(resultCh)
 	}()
 	return resultCh
+}
+
+func (t *S3Transfer) Rename(src, dst string) error {
+	srcOpt := minio.CopySrcOptions{
+		Bucket: t.bucketName,
+		Object: src,
+	}
+
+	dstOpt := minio.CopyDestOptions{
+		Bucket:  t.bucketName,
+		Object: dst,
+	}
+
+	if _, err := t.client.CopyObject(context.Background(), dstOpt, srcOpt); err != nil {
+		return err
+	}
+
+	return t.client.RemoveObject(context.Background(), t.bucketName, src, minio.RemoveObjectOptions{})
 }

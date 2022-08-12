@@ -23,13 +23,26 @@
 
 ## 如何使用
 
-* 在 config.ini 中填入你的 S3 存储配置
+* 填充 config.ini
 * 使用 go build 编译 gamesavesyncing.exe
 ```
 $ cd cmd\gamesave-syncing
 $ go build
 ```
 * 运行 gamesavesyncing.exe
+
+### 转换时间格式
+    
+如果你有使用这个软件的早期版本，你可能需要使用 convert-time-format.exe 来帮助你
+将已经上传的游戏存档的时间格式转换为新版本需要的格式
+    
+* 填充 config.ini
+* 使用 go build 编译 convert-time-format.exe
+```
+$ cd cmd\convert-time-format
+$ go build
+```
+* 运行 convert-time-format.exe
 
 ## 待完成
 

@@ -33,6 +33,19 @@ $ go build
 ```
 * Run gamesavesyncing.exe
 
+### Convert time format
+
+If you use the early version of gamesave-syncing, you may need convert-time-format
+to help you convert the time format of uploaded gamesave.
+
+* Fill config.ini
+* Generate convert-time-format.exe
+```
+$ cd cmd\convert-time-format
+$ go build
+```
+* Run convert-time-format.exe
+
 
 ## TODO
 
