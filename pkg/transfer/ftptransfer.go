@@ -35,6 +35,7 @@ func (t *FTPTransfer) Upload(localFile, remoteFile string) error {
 	if err != nil {
 		return err
 	}
+	defer fs.Close()
 
 	remoteFile = path.Join(t.subDir, remoteFile)
 	err = t.conn.Stor(remoteFile, fs)

@@ -35,15 +35,7 @@ func main() {
 
 	iniFile, err := ini.Load(args.Path)
 	CheckError(err)
-	iniSection := iniFile.Section("main")
-	endpoint := iniSection.Key("endpoint").String()
-	bucketName := iniSection.Key("bucketName").String()
-	accessKeyID := iniSection.Key("accessKeyID").String()
-	secretAccessKey := iniSection.Key("secretAccessKey").String()
-
-	transfer, err := NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey)
-	CheckError(err)
-
+	transfer := newTransfer(iniFile)
 	appData := getAppdata()
 	for _, info := range LoadGameList("conf.d/") {
 		log.Println(GetSyncGameMessage(info.Name))
@@ -67,6 +59,32 @@ func main() {
 			downloadGameSave(transfer, p, zipPath, downloadObjName)
 		}
 	}
+}
+
+func newTransfer(iniFile *ini.File) Transfer {
+	s3Section, err := iniFile.GetSection("s3")
+	if err == nil {
+		endpoint := s3Section.Key("endpoint").String()
+		bucketName := s3Section.Key("bucketName").String()
+		accessKeyID := s3Section.Key("accessKeyID").String()
+		secretAccessKey := s3Section.Key("secretAccessKey").String()
+		transfer, err := NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey)
+		CheckError(err)
+		return transfer
+	}
+
+	ftpSection, err := iniFile.GetSection("ftp")
+	if err == nil {
+		addr := ftpSection.Key("addr").String()
+		user := ftpSection.Key("user").String()
+		password := ftpSection.Key("password").String()
+		subDir := ftpSection.Key("subDir").String()
+		transfer, err := NewFTPTransfer(addr, user, password, subDir)
+		CheckError(err)
+		return transfer
+	}
+
+	panic("Invalid config no s3 and ftp section")
 }
 
 func getDownloadName(transfer Transfer, localTime *time.Time, dir string) (string, bool) {

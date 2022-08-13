@@ -1,6 +1,6 @@
 # gamesave syncing
 
-Syncing game save between PC via S3
+Syncing game save between PC via S3 or FTP
 
 [简体中文文档](README-zh_CN.md)
 
@@ -46,8 +46,29 @@ $ go build
 ```
 * Run convert-time-format.exe
 
+### config.ini
+
+You can config gamesavesyncing.exe to use S3 or FTP to sync gamesave
+
+#### S3 example
+
+```ini
+[s3]
+endpoint = oss-cn-guangzhou.aliyuncs.com
+bucketName = yourBucketName
+accessKeyID = yourAccessKeyID
+secretAccessKey = yourSecretAccessKey
+```
+
+#### FTP example
+```ini
+[ftp]
+addr = 127.0.0.1:21
+user = yourUsername
+password = userPassword
+subDir = yourSubdirToStoreGamesave
+```
 
 ## TODO
 
-* Support sync via FTP server
 * Support monitor game save directory and game process，sync game save while change
