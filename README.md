@@ -69,6 +69,12 @@ password = userPassword
 subDir = yourSubdirToStoreGamesave
 ```
 
+### conf.d
+
+If your game not in the [Supported games](https://github.com/chenjianlong/gamesave-syncing#supported-games)
+
+You can add your game search info under conf.d directory
+
 ## TODO
 
 * Support monitor game save directory and game process，sync game save while change

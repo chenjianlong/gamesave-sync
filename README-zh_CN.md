@@ -67,6 +67,12 @@ password = userPassword
 subDir = yourSubdirToStoreGamesave
 ```
 
+### conf.d
+
+如果你的游戏不在 [目前支持的游戏](https://github.com/chenjianlong/gamesave-syncing/blob/main/README-zh_CN.md#%E7%9B%AE%E5%89%8D%E6%94%AF%E6%8C%81%E7%9A%84%E6%B8%B8%E6%88%8F) 列表中
+
+你可以添加你的游戏信息到 conf.d 目录下
+
 ## 待完成
 
 * 支持通过监控游戏存档所在的目录和游戏进程，当游戏存档发生修改并且探测到游戏进程退出后同步游戏存档
