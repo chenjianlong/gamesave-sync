@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/alexflint/go-arg"
-	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
-	. "github.com/chenjianlong/gamesave-syncing/pkg/transfer"
+	. "github.com/chenjianlong/gamesave-sync/pkg/gsutils"
+	. "github.com/chenjianlong/gamesave-sync/pkg/transfer"
 	"gopkg.in/ini.v1"
 	"log"
 	"strings"

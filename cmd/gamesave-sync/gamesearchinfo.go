@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
+	. "github.com/chenjianlong/gamesave-sync/pkg/gsutils"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 	"io/ioutil"

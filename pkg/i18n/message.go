@@ -2,7 +2,7 @@ package i18n
 
 import (
 	"encoding/json"
-	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
+	. "github.com/chenjianlong/gamesave-sync/pkg/gsutils"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 	"log"

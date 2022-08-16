@@ -2,7 +2,7 @@ package transfer
 
 import (
 	"context"
-	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
+	. "github.com/chenjianlong/gamesave-sync/pkg/gsutils"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )

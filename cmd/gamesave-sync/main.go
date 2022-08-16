@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/chenjianlong/gamesave-syncing/pkg/gsutils"
-	. "github.com/chenjianlong/gamesave-syncing/pkg/i18n"
-	. "github.com/chenjianlong/gamesave-syncing/pkg/transfer"
-	. "github.com/chenjianlong/gamesave-syncing/pkg/ziputils"
+	. "github.com/chenjianlong/gamesave-sync/pkg/gsutils"
+	. "github.com/chenjianlong/gamesave-sync/pkg/i18n"
+	. "github.com/chenjianlong/gamesave-sync/pkg/transfer"
+	. "github.com/chenjianlong/gamesave-sync/pkg/ziputils"
 	"github.com/jeandeaual/go-locale"
 	"golang.org/x/sys/windows"
 )
