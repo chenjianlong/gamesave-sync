@@ -324,7 +324,7 @@ func toKnownFolderID(folderID string) (*windows.KNOWNFOLDERID, error) {
 	case "AppDataProgramData":
 		knownFolderID = windows.FOLDERID_AppDataProgramData
 	default:
-		return nil, errors.New(fmt.Sprintf("Unknown FOLDERID: %s", knownFolderID))
+		return nil, errors.New(fmt.Sprintf("Unknown FOLDERID: %#v", knownFolderID))
 	}
 
 	return knownFolderID, nil
