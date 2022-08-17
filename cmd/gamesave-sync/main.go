@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/alexflint/go-arg"
+	"github.com/fsnotify/fsnotify"
 	"gopkg.in/ini.v1"
 	"log"
 	"os"
@@ -16,6 +17,7 @@ import (
 	. "github.com/chenjianlong/gamesave-sync/pkg/transfer"
 	. "github.com/chenjianlong/gamesave-sync/pkg/ziputils"
 	"github.com/jeandeaual/go-locale"
+	"github.com/mitchellh/go-ps"
 	"golang.org/x/sys/windows"
 )
 
@@ -33,10 +35,9 @@ func main() {
 	CheckError(err)
 	InitBundle(loc)
 
-	iniFile, err := ini.Load(args.Path)
-	CheckError(err)
-	transfer := newTransfer(iniFile)
+	transfer := newTransfer(args.Path)
 	appData := getAppdata()
+	hasMonitor := false
 	for _, info := range LoadGameList("conf.d/") {
 		log.Println(GetSyncGameMessage(info.Name))
 		p := info.Dir
@@ -58,10 +59,88 @@ func main() {
 		if downloadObjName != "" {
 			downloadGameSave(transfer, p, zipPath, downloadObjName)
 		}
+
+		if info.ProcName != "" {
+			go monitorDir(args.Path, info)
+			hasMonitor = true
+		}
+	}
+
+	if hasMonitor {
+		// Block main goroutine forever.
+		<-make(chan struct{})
 	}
 }
 
-func newTransfer(iniFile *ini.File) Transfer {
+func monitorDir(iniPath string, info GameInfo) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	// Start listening for events.
+	go func() {
+		fatalError := false
+		gameSaveModify := false
+		for !fatalError {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+
+				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
+					log.Println("modified file:", event.Name)
+					gameSaveModify = true
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					fatalError = true
+				}
+				log.Println("error:", err)
+			case <-time.After(time.Second * 5):
+				break
+			}
+
+			if gameSaveModify {
+				uploadGameSaveIfGameExited(iniPath, info)
+			}
+		}
+	}()
+
+	// Add a path.
+	CheckError(watcher.Add(info.Dir))
+	// TODO exit if watcher is error on monitor
+	<-make(chan struct{})
+}
+
+func processRunning(name string) bool {
+	processes, err := ps.Processes()
+	CheckError(err)
+	for _, proc := range processes {
+		if proc.Executable() == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func uploadGameSaveIfGameExited(iniPath string, info GameInfo) {
+	if processRunning(info.ProcName) {
+		return
+	}
+
+	zipPath := filepath.Join(getAppdata(), info.Name+".zip")
+	localGameSaveTime := getLocalGameSaveTime(info.Dir)
+	objName := path.Join(info.Name, localGameSaveTime.UTC().Format(TimeFormat)+".zip")
+	uploadGameSave(newTransfer(iniPath), info.Dir, zipPath, objName)
+}
+
+func newTransfer(path string) Transfer {
+	iniFile, err := ini.Load(path)
+	CheckError(err)
 	s3Section, err := iniFile.GetSection("s3")
 	if err == nil {
 		endpoint := s3Section.Key("endpoint").String()

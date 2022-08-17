@@ -36,6 +36,7 @@ type GameSearchInfo struct {
 	Reg      *RegistryInfo `json:"registry"`
 	Dir      string        `json:"dir"`
 	SubDir   string        `json:"subdir"`
+	ProcName string        `json:"procName"`
 }
 
 func toKnownFolderID(folderID string) (*windows.KNOWNFOLDERID, error) {
@@ -438,8 +439,9 @@ func LoadGameSearchInfo(path string) *GameSearchInfo {
 }
 
 type GameInfo struct {
-	Name string
-	Dir  string
+	Name     string
+	Dir      string
+	ProcName string
 }
 
 func LoadGameList(confDir string) []GameInfo {
@@ -498,7 +500,7 @@ func LoadGameList(confDir string) []GameInfo {
 			continue
 		}
 
-		gameList = append(gameList, GameInfo{info.Name, dir})
+		gameList = append(gameList, GameInfo{info.Name, dir, info.ProcName})
 	}
 
 	return gameList
