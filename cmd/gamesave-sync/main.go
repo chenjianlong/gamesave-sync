@@ -2,9 +2,6 @@ package main
 
 import (
 	"errors"
-	"github.com/alexflint/go-arg"
-	"github.com/fsnotify/fsnotify"
-	"gopkg.in/ini.v1"
 	"log"
 	"os"
 	"path"
@@ -12,10 +9,14 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/chenjianlong/gamesave-sync/pkg/gsutils"
-	. "github.com/chenjianlong/gamesave-sync/pkg/i18n"
-	. "github.com/chenjianlong/gamesave-sync/pkg/transfer"
-	. "github.com/chenjianlong/gamesave-sync/pkg/ziputils"
+	"github.com/alexflint/go-arg"
+	"github.com/fsnotify/fsnotify"
+	"gopkg.in/ini.v1"
+
+	"github.com/chenjianlong/gamesave-sync/pkg/gsutils"
+	"github.com/chenjianlong/gamesave-sync/pkg/i18n"
+	"github.com/chenjianlong/gamesave-sync/pkg/transfer"
+	"github.com/chenjianlong/gamesave-sync/pkg/ziputils"
 	"github.com/jeandeaual/go-locale"
 	"github.com/mitchellh/go-ps"
 	"golang.org/x/sys/windows"
@@ -32,16 +33,16 @@ func main() {
 	arg.MustParse(&args)
 
 	loc, err := locale.GetLocale()
-	CheckError(err)
-	InitBundle(loc)
+	gsutils.CheckError(err)
+	i18n.InitBundle(loc)
 
 	transfer := newTransfer(args.Path)
 	appData := getAppdata()
 	hasMonitor := false
 	for _, info := range LoadGameList("conf.d/") {
-		log.Println(GetSyncGameMessage(info.Name))
+		log.Println(i18n.GetSyncGameMessage(info.Name))
 		p := info.Dir
-		valid, _ := IsDir(p)
+		valid, _ := gsutils.IsDir(p)
 		if !valid {
 			log.Printf("%s not exist\n", p)
 			continue
@@ -52,7 +53,7 @@ func main() {
 		log.Printf("Game: %s, needUpload: %v, downloadObject: %s\n", info.Name, needUpload, downloadObjName)
 		zipPath := filepath.Join(appData, info.Name+".zip")
 		if needUpload && localGameSaveTime != nil {
-			objName := path.Join(info.Name, localGameSaveTime.UTC().Format(TimeFormat)+".zip")
+			objName := path.Join(info.Name, localGameSaveTime.UTC().Format(gsutils.TimeFormat)+".zip")
 			uploadGameSave(transfer, p, zipPath, objName)
 		}
 
@@ -110,14 +111,14 @@ func monitorDir(iniPath string, info GameInfo) {
 	}()
 
 	// Add a path.
-	CheckError(watcher.Add(info.Dir))
+	gsutils.CheckError(watcher.Add(info.Dir))
 	// TODO exit if watcher is error on monitor
 	<-make(chan struct{})
 }
 
 func processRunning(name string) bool {
 	processes, err := ps.Processes()
-	CheckError(err)
+	gsutils.CheckError(err)
 	for _, proc := range processes {
 		if proc.Executable() == name {
 			return true
@@ -134,21 +135,21 @@ func uploadGameSaveIfGameExited(iniPath string, info GameInfo) {
 
 	zipPath := filepath.Join(getAppdata(), info.Name+".zip")
 	localGameSaveTime := getLocalGameSaveTime(info.Dir)
-	objName := path.Join(info.Name, localGameSaveTime.UTC().Format(TimeFormat)+".zip")
+	objName := path.Join(info.Name, localGameSaveTime.UTC().Format(gsutils.TimeFormat)+".zip")
 	uploadGameSave(newTransfer(iniPath), info.Dir, zipPath, objName)
 }
 
-func newTransfer(path string) Transfer {
+func newTransfer(path string) transfer.Transfer {
 	iniFile, err := ini.Load(path)
-	CheckError(err)
+	gsutils.CheckError(err)
 	s3Section, err := iniFile.GetSection("s3")
 	if err == nil {
 		endpoint := s3Section.Key("endpoint").String()
 		bucketName := s3Section.Key("bucketName").String()
 		accessKeyID := s3Section.Key("accessKeyID").String()
 		secretAccessKey := s3Section.Key("secretAccessKey").String()
-		transfer, err := NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey)
-		CheckError(err)
+		transfer, err := transfer.NewS3Transfer(endpoint, bucketName, accessKeyID, secretAccessKey)
+		gsutils.CheckError(err)
 		return transfer
 	}
 
@@ -158,15 +159,15 @@ func newTransfer(path string) Transfer {
 		user := ftpSection.Key("user").String()
 		password := ftpSection.Key("password").String()
 		subDir := ftpSection.Key("subDir").String()
-		transfer, err := NewFTPTransfer(addr, user, password, subDir)
-		CheckError(err)
+		transfer, err := transfer.NewFTPTransfer(addr, user, password, subDir)
+		gsutils.CheckError(err)
 		return transfer
 	}
 
 	panic("Invalid config no s3 and ftp section")
 }
 
-func getDownloadName(transfer Transfer, localTime *time.Time, dir string) (string, bool) {
+func getDownloadName(transfer transfer.Transfer, localTime *time.Time, dir string) (string, bool) {
 	needUpload := false
 	var downloadTime time.Time
 	if localTime != nil {
@@ -179,7 +180,7 @@ func getDownloadName(transfer Transfer, localTime *time.Time, dir string) (strin
 			continue
 		}
 
-		objTime, err := time.Parse(TimeFormat, strings.TrimPrefix(strings.TrimSuffix(file, ".zip"), dir))
+		objTime, err := time.Parse(gsutils.TimeFormat, strings.TrimPrefix(strings.TrimSuffix(file, ".zip"), dir))
 		if err != nil {
 			log.Printf("Failed to parse time %s\n", file)
 			continue
@@ -216,21 +217,21 @@ func getLocalGameSaveTime(dir string) *time.Time {
 		return nil
 	})
 
-	CheckError(err)
+	gsutils.CheckError(err)
 	return mtime
 }
 
 func getAppdata() string {
 	appData, err := windows.KnownFolderPath(windows.FOLDERID_RoamingAppData, 0)
-	CheckError(err)
+	gsutils.CheckError(err)
 	appData = filepath.Join(appData, AppName)
-	CheckError(os.MkdirAll(appData, 0755))
+	gsutils.CheckError(os.MkdirAll(appData, 0755))
 	return appData
 }
 
-func uploadGameSave(uploader Uploader, p, zipPath, objName string) {
-	err := ZipSource(p, zipPath)
-	CheckError(err)
+func uploadGameSave(uploader transfer.Uploader, p, zipPath, objName string) {
+	err := ziputils.ZipSource(p, zipPath)
+	gsutils.CheckError(err)
 	defer func() {
 		err = os.Remove(zipPath)
 		if err != nil {
@@ -238,23 +239,23 @@ func uploadGameSave(uploader Uploader, p, zipPath, objName string) {
 		}
 	}()
 
-	CheckError(uploader.Upload(zipPath, objName))
+	gsutils.CheckError(uploader.Upload(zipPath, objName))
 	log.Printf("Successfully uploaded %s\n", objName)
 }
 
-func downloadGameSave(downloader Downloader, p, zipPath, objName string) {
+func downloadGameSave(downloader transfer.Downloader, p, zipPath, objName string) {
 	err := os.Remove(zipPath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		panic(err)
 	}
 
-	CheckError(downloader.Download(objName, zipPath))
+	gsutils.CheckError(downloader.Download(objName, zipPath))
 	defer func() {
 		err = os.Remove(zipPath)
 		if err != nil {
 			log.Println(err)
 		}
 	}()
-	CheckError(os.RemoveAll(p))
-	CheckError(UnzipSource(zipPath, p))
+	gsutils.CheckError(os.RemoveAll(p))
+	gsutils.CheckError(ziputils.UnzipSource(zipPath, p))
 }

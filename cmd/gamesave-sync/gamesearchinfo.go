@@ -3,16 +3,16 @@ package main
 import (
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
-	. "github.com/chenjianlong/gamesave-sync/pkg/gsutils"
-	"golang.org/x/sys/windows"
-	"golang.org/x/sys/windows/registry"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/chenjianlong/gamesave-sync/pkg/gsutils"
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 type SearchType uint16
@@ -325,7 +325,7 @@ func toKnownFolderID(folderID string) (*windows.KNOWNFOLDERID, error) {
 	case "AppDataProgramData":
 		knownFolderID = windows.FOLDERID_AppDataProgramData
 	default:
-		return nil, errors.New(fmt.Sprintf("Unknown FOLDERID: %#v", knownFolderID))
+		return nil, fmt.Errorf("unknown FOLDERID: %#v", knownFolderID)
 	}
 
 	return knownFolderID, nil
@@ -345,7 +345,7 @@ func (t *SearchType) UnmarshalJSON(data []byte) error {
 	case "folder":
 		*t = STFolder
 	default:
-		return errors.New(fmt.Sprintf("Invalid searchType: %s", searchType))
+		return fmt.Errorf("invalid searchType: %s", searchType)
 	}
 
 	return nil
@@ -360,23 +360,23 @@ func (t *RegistryInfo) UnmarshalJSON(data []byte) error {
 	if name, ok := obj["name"]; ok {
 		t.Name = name
 	} else {
-		return errors.New(fmt.Sprintf("Invalid registry info, obj=%#v", obj))
+		return fmt.Errorf("invalid registry info, obj=%#v", obj)
 	}
 
 	regPath, ok := obj["path"]
 	if !ok {
-		return errors.New(fmt.Sprintf("Invalid registry info, obj=%#v", obj))
+		return fmt.Errorf("invalid registry info, obj=%#v", obj)
 	}
 
 	idx := strings.Index(regPath, "\\")
 	if idx < 0 {
-		return errors.New(fmt.Sprintf("Invalid registry info, obj=%#v", obj))
+		return fmt.Errorf("invalid registry info, obj=%#v", obj)
 	}
 
 	rootKey := regPath[:idx]
 	t.Key = regPath[idx+1:]
 	if len(t.Key) == 0 {
-		return errors.New(fmt.Sprintf("Invalid registry info, obj=%#v", obj))
+		return fmt.Errorf("invalid registry info, obj=%#v", obj)
 	}
 
 	switch rootKey {
@@ -391,7 +391,7 @@ func (t *RegistryInfo) UnmarshalJSON(data []byte) error {
 	case "HKCC", "HKEY_CURRENT_CONFIG":
 		t.RootKey = registry.CURRENT_CONFIG
 	default:
-		return errors.New(fmt.Sprintf("Invalid registry info, obj=%#v", obj))
+		return fmt.Errorf("invalid registry info, obj=%#v", obj)
 	}
 	return nil
 }
@@ -404,7 +404,8 @@ func LoadGameSearchInfo(path string) *GameSearchInfo {
 	}
 
 	defer file.Close()
-	content, err := ioutil.ReadAll(file)
+	content, err := io.ReadAll(file)
+	gsutils.CheckError(err)
 	searchInfo := new(GameSearchInfo)
 	err = json.Unmarshal(content, searchInfo)
 	if err != nil {
@@ -461,7 +462,7 @@ func LoadGameList(confDir string) []GameInfo {
 		return nil
 	})
 
-	CheckError(err)
+	gsutils.CheckError(err)
 	var gameList []GameInfo
 	for _, info := range gameSearchInfo {
 		if info.Name == `` || info.SubDir == `` {
@@ -473,7 +474,7 @@ func LoadGameList(confDir string) []GameInfo {
 		switch info.Type {
 		case STKnownFolder:
 			dir, err = windows.KnownFolderPath(info.FolderID, 0)
-			CheckError(err)
+			gsutils.CheckError(err)
 		case STRegistry:
 			key, err := registry.OpenKey(info.Reg.RootKey, info.Reg.Key, registry.QUERY_VALUE|registry.WOW64_64KEY)
 			if err != nil {
@@ -495,7 +496,7 @@ func LoadGameList(confDir string) []GameInfo {
 		}
 
 		dir = filepath.Join(dir, info.SubDir)
-		valid, _ := IsDir(dir)
+		valid, _ := gsutils.IsDir(dir)
 		if !valid {
 			continue
 		}
